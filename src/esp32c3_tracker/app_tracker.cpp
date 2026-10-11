@@ -28,7 +28,7 @@ void initApp() {
     Serial.println("ESP32C3 Tracker Started");
 }
 
-bool getInferenceResults() {
+bool getInferenceResults(String& frame) {
     size_t n = atSerial.readBytesUntil('\n', response, sizeof(response) - 1);
     response[n] = '\0';
 
@@ -41,13 +41,27 @@ bool getInferenceResults() {
         return false;
     }
 
+    String b64Image = doc["data"]["image"];
+
+    if (b64Image.length() == 0) {
+        return false;
+    }
+
+    frame = b64Image;
     return true;
 }
 
-void handleInferenceResults() {
-    getInferenceResults();
+void handleInferenceResults(Stream& stream) {
+    String frame = "";
+    if (!getInferenceResults(frame)) {
+        return;
+    }
 
     JsonArray boxesJson = doc["data"]["boxes"].as<JsonArray>();
+
+#if STREAM_CHANNEL != 0
+    stream.println("IMG_START");
+#endif
 
     if (!boxesJson.isNull() && boxesJson.size()) {
         /* ----------------- Get image processing and inference time ---------------- */
@@ -59,7 +73,7 @@ void handleInferenceResults() {
         perf.postprocess = perfJson[2].as<uint16_t>();
         /* -------------------------------------------------------------------------- */
         
-        Serial.printf(
+        stream.printf(
             "PERF: prepocess=%u, inference=%u, postpocess=%u\n",
             perf.prepocess,
             perf.inference,
@@ -78,7 +92,7 @@ void handleInferenceResults() {
             box.target = boxJson[5].as<uint8_t>();
             /* -------------------------------------------------------------------------- */
 
-            Serial.printf(
+            stream.printf(
                 "BOX:%u,%u,%u,%u,%u,%u\n",
                 box.x,
                 box.y,
@@ -89,6 +103,12 @@ void handleInferenceResults() {
             );
         }
     }
+
+#if STREAM_CHANNEL != 0
+    stream.println(frame);
+    
+    stream.println("IMG_END");
+#endif
 }
 
 void measurePerf(double& latency, double& fps, void (*fn)()) {
