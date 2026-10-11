@@ -4,6 +4,8 @@
 #include <ArduinoJson.h>
 #include <Arduino.h>
 
+#define ENABLE_JPEG_ENC 0
+
 HardwareSerial atSerial(0);
 
 SSCMA AI;
@@ -51,11 +53,48 @@ bool getInferenceResults(String& frame) {
     return true;
 }
 
+#if ENABLE_JPEG_ENC == 1
+#include "mbedtls/base64.h"
+#define MAX_JPEG_SIZE (15 * 1024)
+uint8_t jpeg[MAX_JPEG_SIZE];
+size_t jpegSize = 0;
+
+bool b64ToJpeg(String b64Image) {
+    size_t b64Size = b64Image.length();
+
+    size_t outputSize = 0;
+    mbedtls_base64_decode(nullptr, 0, &outputSize, (const unsigned char*) b64Image.c_str(), b64Size);
+
+    if (outputSize == 0 || outputSize > MAX_JPEG_SIZE) {
+        Serial.printf("Invalid JPEG size: %d\n", outputSize);
+        return false;
+    }
+
+    int ret = mbedtls_base64_decode(jpeg, MAX_JPEG_SIZE, &outputSize, (const unsigned char*) b64Image.c_str(), b64Size);
+
+    if (ret != 0) {
+        Serial.printf("Base64 decode failed: %d\n", ret);
+        return false;
+    }
+
+    jpegSize = outputSize;
+
+    return true;
+}
+
+#endif
+
 void handleInferenceResults(Stream& stream) {
     String frame = "";
     if (!getInferenceResults(frame)) {
         return;
     }
+
+#if ENABLE_JPEG_ENC == 1
+    if (!b64ToJpeg(frame)) {
+        return;
+    }
+#endif
 
     JsonArray boxesJson = doc["data"]["boxes"].as<JsonArray>();
 
@@ -105,7 +144,12 @@ void handleInferenceResults(Stream& stream) {
     }
 
 #if STREAM_CHANNEL != 0
+#if ENABLE_JPEG_ENC == 1
+    stream.printf("IMG_BIN:%u\n", jpegSize);
+    stream.write(jpeg, jpegSize);
+#else
     stream.println(frame);
+#endif
     
     stream.println("IMG_END");
 #endif
