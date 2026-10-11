@@ -41,4 +41,8 @@ if [[ ! -e "$path" ]]; then
     exit 1
 fi
 
-arduino-cli compile --fqbn "$fqbn" "$path"
+
+repo_root="$(git rev-parse --show-toplevel)"
+libraries="$repo_root/libraries"
+
+arduino-cli compile --fqbn "$fqbn" --libraries "$libraries" "$path"

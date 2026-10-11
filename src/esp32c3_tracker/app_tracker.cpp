@@ -3,8 +3,15 @@
 #include <HardwareSerial.h>
 #include <ArduinoJson.h>
 #include <Arduino.h>
+#include <BYTETracker.h>
 
 #define ENABLE_JPEG_ENC 0
+#define ENABLE_TRACKER  0
+
+#if ENABLE_TRACKER == 1
+#include "BYTETracker.h"
+BYTETracker tracker(10, 15);
+#endif
 
 HardwareSerial atSerial(0);
 
@@ -103,6 +110,9 @@ void handleInferenceResults(Stream& stream) {
 #endif
 
     if (!boxesJson.isNull() && boxesJson.size()) {
+#if ENABLE_TRACKER == 1
+        std::vector<BYTETracker::Object> objects;
+#endif
         /* ----------------- Get image processing and inference time ---------------- */
         JsonArray perfJson = doc["data"]["perf"].as<JsonArray>();
         perf_t perf;
@@ -140,7 +150,37 @@ void handleInferenceResults(Stream& stream) {
                 box.score,
                 box.target
             );
+
+#if ENABLE_TRACKER == 1
+            BYTETracker::Object obj;
+
+            obj.rect.x      = box.x - box.w / 2.0f;
+            obj.rect.y      = box.y - box.h / 2.0f;
+            obj.rect.width  = box.w;
+            obj.rect.height = box.h;
+
+            obj.label = box.target;
+            obj.prob  = box.score / 100.0f;
+
+            objects.push_back(obj);
+#endif
         }
+
+#if ENABLE_TRACKER == 1
+        std::vector<STrack> tracks = tracker.update(objects);
+
+        for (auto& track : tracks) {
+            stream.printf(
+                "TRACK:%d,%.2f,%.2f,%.2f,%.2f,%.2f\n",
+                track.track_id,
+                track.tlwh[0],
+                track.tlwh[1],
+                track.tlwh[2],
+                track.tlwh[3],
+                track.score
+            );
+        }
+#endif
     }
 
 #if STREAM_CHANNEL != 0

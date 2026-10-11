@@ -59,7 +59,9 @@ if ! arduino-cli board list | grep -Fq "$port"; then
 fi
 
 if [[ "$compile" = true ]]; then
-    arduino-cli compile --fqbn "$fqbn" --upload -p "$port" "$path"
+    repo_root="$(git rev-parse --show-toplevel)"
+    libraries="$repo_root/libraries"
+    arduino-cli compile --fqbn "$fqbn" --libraries "$libraries" --upload -p "$port" "$path"
 else
     arduino-cli upload --fqbn "$fqbn" -p "$port" "$path"
 fi
