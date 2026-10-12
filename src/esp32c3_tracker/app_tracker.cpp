@@ -3,29 +3,40 @@
 #include <HardwareSerial.h>
 #include <ArduinoJson.h>
 #include <Arduino.h>
-#include <BYTETracker.h>
+#include "packet.h"
 
 #define ENABLE_JPEG_ENC 0
 #define ENABLE_TRACKER  0
 
 #if ENABLE_TRACKER == 1
 #include "BYTETracker.h"
-BYTETracker tracker(10, 15);
+
+const int FRAME_RATE = 10;
+const int TRACK_BUFFER = 30;
+
+BYTETracker tracker(FRAME_RATE, TRACK_BUFFER);
+
+int missedFrames = 0;
+int trackId = -1;
+
 #endif
 
 HardwareSerial atSerial(0);
+HardwareSerial crSerial(1);
 
 SSCMA AI;
 JsonDocument doc;
 
+const int16_t CENX = 120;
 char response[10240];
 
 void initApp() {
+    atSerial.setRxBufferSize(4096);
     atSerial.begin(921600, SERIAL_8N1, -1, -1);
+    crSerial.begin(115200, SERIAL_8N1, -1, 10);
     AI.begin(&atSerial);
     Serial.begin(115200);
-
-    while (!atSerial) delay(1000);
+    while (!Serial || !atSerial || !crSerial) delay(500);
     
     const char* invoke_cmd = "AT+INVOKE=-1,0,1\r";
 
@@ -151,6 +162,16 @@ void handleInferenceResults(Stream& stream) {
                 box.target
             );
 
+#if ENABLE_TRACKER == 0
+            int16_t boxCenter  = box.x;
+            int16_t trackError = boxCenter - CENX;
+
+            Packet packet;
+            packet.detected = 1;
+            packet.error    = trackError;
+
+            sendPacket(packet, crSerial);
+#endif
 #if ENABLE_TRACKER == 1
             BYTETracker::Object obj;
 
@@ -169,6 +190,8 @@ void handleInferenceResults(Stream& stream) {
 #if ENABLE_TRACKER == 1
         std::vector<STrack> tracks = tracker.update(objects);
 
+        bool found = false;
+
         for (auto& track : tracks) {
             stream.printf(
                 "TRACK:%d,%.2f,%.2f,%.2f,%.2f,%.2f\n",
@@ -179,8 +202,38 @@ void handleInferenceResults(Stream& stream) {
                 track.tlwh[3],
                 track.score
             );
+
+            int16_t boxCenter  = (int16_t)(track.tlwh[0] + track.tlwh[2] / 2);
+            int16_t trackError = boxCenter - CENX;
+
+            if (trackId < 0) trackId = track.track_id;
+            else if (trackId != track.track_id) continue;
+
+            found = true;
+            missedFrames = 0;
+
+            Packet packet;
+            packet.detected = 1;
+            packet.error    = trackError;
+
+            sendPacket(packet, crSerial);
+        }
+
+        if (!found && trackId >= 0) {
+            missedFrames++;
+            if (missedFrames > TRACK_BUFFER) {
+                trackId      = -1;
+                missedFrames = 0;
+            }
         }
 #endif
+    }
+    else {
+        Packet packet;
+        packet.detected = 0;
+        packet.error    = 1000;
+
+        sendPacket(packet, crSerial);
     }
 
 #if STREAM_CHANNEL != 0

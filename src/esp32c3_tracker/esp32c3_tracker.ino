@@ -28,6 +28,8 @@ void setup() {
 
     Serial.printf("Server started listening at '%s:%u'\n", WiFi.localIP().toString(), port);
 #endif
+
+    Serial.println("Object Tracker Started on ESP32C3");
 }
 
 void loop() {
