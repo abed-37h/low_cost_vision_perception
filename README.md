@@ -52,7 +52,7 @@ Optionally, the ESP32C3 can run BYTETracker to follow one object consistently ac
   - ArduinoEigen (for BYTETracker)
   - ArxTypeTraits (for BYTETracker)
 - Python 3, preferably in a virtual environment (only for the camera preview tool)
-- A detection model uploaded to the Grove Vision AI V2 (instructions: TODO, will be added under `docs/`)
+- A detection model deployed to the Grove Vision AI V2 (see [Model Deployment documentation](docs/model_deployment.md))
 
 ## Wiring
 
