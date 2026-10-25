@@ -128,7 +128,7 @@ Receives packets on `Serial3` and runs the PD controller described in [How It Wo
 | `EMAX` | `20` | Deadband: the robot stops when the absolute error is below this |
 | `VMAX` | `30` | Maximum turning speed |
 
-The packet timeout is 150 ms. Debug output goes to `Serial` at 9600 baud.
+The packet timeout is 150 ms. Debug output goes to `Serial` at 9600 baud. Board setup and the `stem` motor functions are described in the [Arduino Mega and the stem Library documentation](docs/mega_controller.md).
 
 Compile only:
 
