@@ -37,9 +37,12 @@ void initApp() {
     AI.begin(&atSerial);
     Serial.begin(115200);
     while (!Serial || !atSerial || !crSerial) delay(500);
-    
-    const char* invoke_cmd = "AT+INVOKE=-1,0,1\r";
 
+#if STREAM_CHANNEL == 0
+    const char* invoke_cmd = "AT+INVOKE=-1,0,1\r";
+    #else
+    const char* invoke_cmd = "AT+INVOKE=-1,0,0\r";
+#endif
     atSerial.write(invoke_cmd, strlen(invoke_cmd));
 
     while (!atSerial.available()) delay(1000);
@@ -61,6 +64,7 @@ bool getInferenceResults(String& frame) {
         return false;
     }
 
+#if STREAM_CHANNEL != 0
     String b64Image = doc["data"]["image"];
 
     if (b64Image.length() == 0) {
@@ -68,10 +72,12 @@ bool getInferenceResults(String& frame) {
     }
 
     frame = b64Image;
+#endif
+
     return true;
 }
 
-#if ENABLE_JPEG_ENC == 1
+#if STREAM_CHANNEL != 0 && ENABLE_JPEG_ENC == 1
 #include "mbedtls/base64.h"
 #define MAX_JPEG_SIZE (15 * 1024)
 uint8_t jpeg[MAX_JPEG_SIZE];
@@ -108,7 +114,7 @@ void handleInferenceResults(Stream& stream) {
         return;
     }
 
-#if ENABLE_JPEG_ENC == 1
+#if STREAM_CHANNEL != 0 && ENABLE_JPEG_ENC == 1
     if (!b64ToJpeg(frame)) {
         return;
     }
