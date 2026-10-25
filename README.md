@@ -46,11 +46,11 @@ Optionally, the ESP32C3 can run BYTETracker to follow one object consistently ac
 - `arduino-cli` (with the `esp32:esp32` and `arduino:avr` cores) or the Arduino IDE. The
   scripts below use `arduino-cli`; with the IDE, copy the sketches and the `libraries/`
   folders into your Arduino folders manually (not tested).
-- Arduino libraries:
+- Arduino libraries (install steps: [ESP32C3 and SSCMA documentation](docs/esp32c3_sscma.md#libraries)):
   - Seeed_Arduino_SSCMA
   - ArduinoJson
-  - ArduinoEigen (for BYTETracker)
-  - ArxTypeTraits (for BYTETracker)
+  - Eigen (ArduinoEigen, for BYTETracker)
+  - ArxTypeTraits (required by Eigen)
 - Python 3, preferably in a virtual environment (only for the camera preview tool)
 - A detection model deployed to the Grove Vision AI V2 (see [Model Deployment documentation](docs/model_deployment.md))
 
