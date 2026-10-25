@@ -105,7 +105,7 @@ Options are compile-time settings; edit them before building:
 |---|---|---|
 | `STREAM_CHANNEL` | `app_tracker.h` | `0` no stream (default), `1` USB serial, `2` TCP (Wi-Fi settings in `env.h`) |
 | `ENABLE_WIFI_CONFIG` | `app_tracker.h` | `1` uses the static IP set in `esp32c3_tracker.ino` |
-| `ENABLE_TRACKER` | `app_tracker.cpp` | `1` enables BYTETracker, which is only built when this is `1` (default `0`) |
+| `ENABLE_TRACKER` | `app_tracker.cpp` | `1` enables BYTETracker (see the [BYTETracker documentation](docs/bytetracker.md)), which is only built when this is `1` (default `0`) |
 | `ENABLE_JPEG_ENC` | `app_tracker.cpp` | `1` sends frames as binary JPEG instead of base64 (default `0`) |
 
 > Note (TCP): with `STREAM_CHANNEL 2` the tracker only runs while a viewer is connected.
